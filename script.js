@@ -25,12 +25,30 @@ async function main() {
     // Send model details and system message
     body: JSON.stringify({
       model: 'gpt-4o',
-      messages: conversationHistory
+      messages: conversationHistory,
+      max_completion_tokens:100,
+      temperature: 1.2,
+      frequency_penalty: 0.5,
     })
   });
+
+  // Handle API errors so the app does not break
+  if (!response.ok) {
+    console.error(`API request failed: ${response.status} ${response.statusText}`);
+    responseContainer.textContent = 'Something went wrong while contacting the API. Please try again.';
+    return;
+  }
+
   // Parse and store the response data
   const result = await response.json();
-  const assistantMessage = result.choices[0].message.content;
+  const assistantMessage = result.choices?.[0]?.message?.content;
+
+  // Guard against unexpected API response shapes
+  if (!assistantMessage) {
+    console.error('Unexpected API response:', result);
+    responseContainer.textContent = 'Something went wrong while reading the response. Please try again.';
+    return;
+  }
 
   // Save the assistant's reply so future requests include it
   conversationHistory.push({ role: 'assistant', content: assistantMessage });
@@ -58,5 +76,8 @@ chatForm.addEventListener('submit', async function (event) {
   userInput.value = '';
 
   responseContainer.textContent = 'Thinking...';
-  await main();
+  await main().catch(function (error) {
+    console.error('Request error:', error);
+    responseContainer.textContent = 'Something went wrong. Please check your connection and try again.';
+  });
 });
